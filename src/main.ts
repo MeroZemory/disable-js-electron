@@ -113,6 +113,14 @@ function formatError(error: unknown): string {
   return String(error);
 }
 
+function normalizeUrl(url: string): string {
+  url = url.trim();
+  if (!url.match(/^[a-zA-Z]+:\/\//)) {
+    return `https://${url}`;
+  }
+  return url;
+}
+
 function getInstalledChromeVersion() {
   if (os.platform() === "win32") {
     try {
@@ -604,6 +612,9 @@ async function launchBrowser(url: string) {
     sendLog("log", "브라우저가 이미 실행 중입니다.");
     return;
   }
+
+  // URL 정규화
+  url = normalizeUrl(url);
 
   sendBrowserState(true); // 브라우저 실행 시작을 알림
   sendLog("log", "브라우저 실행 프로세스를 시작합니다...");
