@@ -548,6 +548,8 @@ const createWindow = () => {
     },
   });
 
+  mainWindow.setMenu(null);
+
   // Wait for window to be ready before sending logs
   mainWindow.webContents.on("did-finish-load", () => {
     console.log("Window loaded, sending initial log...");

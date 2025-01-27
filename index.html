@@ -2,15 +2,15 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <title>Electron + Selenium</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JS Controller</title>
+    <link
+      rel="icon"
+      type="image/svg+xml"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233b82f6'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z'/%3E%3C/svg%3E"
+    />
   </head>
   <body>
-    <!-- 
-      renderer.ts에서 동적으로 생성하는 요소를 표시할 공간만 준비.
-      필요한 경우 안내 문구 등을 추가 가능.
-    -->
-    <h1>Electron + Selenium + ChromeDriver Example</h1>
-
     <!-- Vite Dev Server / 프로덕션 빌드에 따라 JS 경로가 자동 결정됨 -->
     <!-- 개발 모드일 때는 Vite Dev Server가 .ts를 .js로 트랜스파일 -->
     <!-- lectron 메인 프로세스에서 mainWindow.loadURL("http://localhost:5173")를 실행하면, 결과적으로 동일한 페이지가 로드됨 -->
