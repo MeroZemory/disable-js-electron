@@ -10,6 +10,10 @@ export default defineConfig({
     }),
   ],
   build: {
+    // 디버깅 편의를 위해 소스맵 활성화
+    sourcemap: true,
+    minify: false,
+    //
     rollupOptions: {
       external: [
         // selenium-webdriver 전역 번들 제외
