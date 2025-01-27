@@ -22,17 +22,17 @@ let existingHandles = new Set();
 let monitoring = false;
 
 function killProcess(name: string) {
-  sendLog("log", `Attempting to kill process: ${name}`);
+  sendLog("log", `프로세스 종료 시도 중: ${name}`);
   if (os.platform() === "win32") {
     spawnSync("taskkill", ["/F", "/IM", name], { stdio: "ignore" });
   } else {
     spawnSync("pkill", [name], { stdio: "ignore" });
   }
-  sendLog("log", `Process kill command executed for: ${name}`);
+  sendLog("log", `프로세스 종료 명령 실행됨: ${name}`);
 }
 
 function killChromeDriverProcesses() {
-  sendLog("log", "Killing any existing ChromeDriver processes...");
+  sendLog("log", "기존 ChromeDriver 프로세스를 종료합니다...");
   killProcess("chromedriver.exe");
 }
 
@@ -41,11 +41,14 @@ function readStartUrl() {
     const dataFile = path.join(__dirname, "start_url.txt");
     if (fs.existsSync(dataFile)) {
       const url = fs.readFileSync(dataFile, "utf8").trim();
-      sendLog("log", `Read start URL from file: ${url}`);
+      sendLog("log", `파일에서 시작 URL을 읽어왔습니다: ${url}`);
       return url;
     }
   } catch (error) {
-    sendLog("error", `Failed to read start URL: ${formatError(error)}`);
+    sendLog(
+      "error",
+      `시작 URL을 읽어오는 데 실패했습니다: ${formatError(error)}`
+    );
   }
   return "";
 }
@@ -54,9 +57,12 @@ function writeStartUrl(url: string) {
   try {
     const dataFile = path.join(__dirname, "start_url.txt");
     fs.writeFileSync(dataFile, url, "utf8");
-    sendLog("log", `Saved start URL to file: ${url}`);
+    sendLog("log", `파일에 시작 URL을 저장했습니다: ${url}`);
   } catch (error) {
-    sendLog("error", `Failed to save start URL: ${formatError(error)}`);
+    sendLog(
+      "error",
+      `시작 URL을 저장하는 데 실패했습니다: ${formatError(error)}`
+    );
   }
 }
 
@@ -86,7 +92,10 @@ function getInstalledChromeVersion() {
   if (os.platform() === "win32") {
     try {
       // Try PowerShell first (more reliable)
-      sendLog("log", "Attempting to get Chrome version using PowerShell...");
+      sendLog(
+        "log",
+        "PowerShell을 사용하여 Chrome 버전을 확인하려고 시도 중입니다..."
+      );
       const psCmd = spawnSync(
         "powershell",
         [
@@ -98,7 +107,10 @@ function getInstalledChromeVersion() {
 
       if (psCmd.status === 0 && psCmd.stdout.trim()) {
         const version = psCmd.stdout.trim();
-        sendLog("log", `Found Chrome version using PowerShell: ${version}`);
+        sendLog(
+          "log",
+          `PowerShell을 통해 Chrome 버전을 찾았습니다: ${version}`
+        );
         return version;
       }
 
@@ -120,12 +132,12 @@ function getInstalledChromeVersion() {
         "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
       ];
 
-      sendLog("log", "Searching for Chrome in possible locations...");
+      sendLog("log", "Chrome이 설치되어 있을 수 있는 위치를 검색 중입니다...");
       for (const chromePath of possiblePaths) {
-        sendLog("log", `Checking path: ${chromePath}`);
+        sendLog("log", `경로 확인 중: ${chromePath}`);
         if (fs.existsSync(chromePath)) {
-          sendLog("log", `Found Chrome executable at: ${chromePath}`);
-          // Use PowerShell to get file version (more reliable than wmic)
+          sendLog("log", `Chrome 실행 파일을 발견했습니다: ${chromePath}`);
+          // Use PowerShell to get file version
           const psVerCmd = spawnSync(
             "powershell",
             ["-Command", `(Get-Item '${chromePath}').VersionInfo.FileVersion`],
@@ -134,14 +146,17 @@ function getInstalledChromeVersion() {
 
           if (psVerCmd.status === 0 && psVerCmd.stdout.trim()) {
             const version = psVerCmd.stdout.trim();
-            sendLog("log", `Found Chrome version using file info: ${version}`);
+            sendLog(
+              "log",
+              `파일 정보를 통해 Chrome 버전을 찾았습니다: ${version}`
+            );
             return version;
           }
         }
       }
 
       // Fallback to registry queries
-      sendLog("log", "Trying registry queries...");
+      sendLog("log", "레지스트리를 조회해 보겠습니다...");
       const registryPaths = [
         ["HKEY_CURRENT_USER\\Software\\Google\\Chrome\\BLBeacon", "version"],
         [
@@ -156,7 +171,7 @@ function getInstalledChromeVersion() {
 
       for (const [regPath, key] of registryPaths) {
         try {
-          sendLog("log", `Querying registry: ${regPath}`);
+          sendLog("log", `레지스트리 확인 중: ${regPath}`);
           const reg = spawnSync("reg", ["query", regPath, "/v", key], {
             encoding: "utf8",
           });
@@ -166,24 +181,33 @@ function getInstalledChromeVersion() {
               .trim()
               .match(/REG_SZ\s+(\d+\.\d+\.\d+\.\d+)/);
             if (match) {
-              sendLog("log", `Found Chrome version in registry: ${match[1]}`);
+              sendLog(
+                "log",
+                `레지스트리에서 Chrome 버전을 찾았습니다: ${match[1]}`
+              );
               return match[1];
             }
           }
         } catch (e) {
-          sendLog("log", `Failed to query registry path: ${regPath}`);
+          sendLog("log", `레지스트리 경로 조회에 실패했습니다: ${regPath}`);
         }
       }
 
       sendLog(
         "error",
-        "Failed to detect Chrome version using all available methods"
+        "모든 방법을 시도했으나 Chrome 버전을 확인할 수 없습니다."
       );
     } catch (error: unknown) {
       if (error instanceof Error) {
-        sendLog("error", `Failed to get Chrome version: ${formatError(error)}`);
+        sendLog(
+          "error",
+          `Chrome 버전을 가져오는 데 실패했습니다: ${formatError(error)}`
+        );
       } else {
-        sendLog("error", "Unknown error while detecting Chrome version");
+        sendLog(
+          "error",
+          "Chrome 버전을 확인하는 중 알 수 없는 오류가 발생했습니다."
+        );
       }
     }
   }
@@ -192,35 +216,35 @@ function getInstalledChromeVersion() {
 
 function getMajorVersion(ver: string | null) {
   if (!ver) {
-    sendLog("log", "No version provided to get major version");
+    sendLog("log", "메이저 버전을 가져올 버전 정보가 없습니다.");
     return null;
   }
   const major = ver.split(".")[0];
-  sendLog("log", `Extracted major version ${major} from ${ver}`);
+  sendLog("log", `버전 문자열 ${ver}에서 메이저 버전 ${major}을 추출했습니다.`);
   return major;
 }
 
 function getDriverMajorVersion(driverPath: string) {
-  sendLog("log", `Checking ChromeDriver version at: ${driverPath}`);
+  sendLog("log", `ChromeDriver 버전을 확인합니다: ${driverPath}`);
   if (!fs.existsSync(driverPath)) {
-    sendLog("log", "ChromeDriver not found at specified path");
+    sendLog("log", "지정된 경로에서 ChromeDriver를 찾을 수 없습니다.");
     return null;
   }
   try {
     const out = execFileSync(driverPath, ["--version"], {
       encoding: "utf8",
     }).trim();
-    sendLog("log", `ChromeDriver version output: ${out}`);
+    sendLog("log", `ChromeDriver 버전 출력: ${out}`);
     const m = out.match(/ChromeDriver\s+(\d+)\./) || out.match(/(\d+)\.[\d.]+/);
     if (m) {
-      sendLog("log", `Detected ChromeDriver major version: ${m[1]}`);
+      sendLog("log", `ChromeDriver 메이저 버전을 확인했습니다: ${m[1]}`);
       return m[1];
     }
-    sendLog("log", "Could not parse ChromeDriver version from output");
+    sendLog("log", "ChromeDriver 버전을 출력에서 파싱할 수 없습니다.");
   } catch (error) {
     sendLog(
       "error",
-      `Failed to get ChromeDriver version: ${formatError(error)}`
+      `ChromeDriver 버전을 가져오는 데 실패했습니다: ${formatError(error)}`
     );
   }
   return null;
@@ -232,89 +256,75 @@ async function downloadLatestChromedriver(
   try {
     sendLog(
       "log",
-      `Attempting to download ChromeDriver for Chrome version ${chromeMajorVersion}`
+      `Chrome 버전 ${chromeMajorVersion}에 맞는 ChromeDriver를 다운로드합니다...`
     );
 
     const url =
       "https://googlechromelabs.github.io/chrome-for-testing/last-known-good-versions-with-downloads.json";
     const response = await fetch(url);
     const json = (await response.json()) as ChromeVersions;
-    sendLog("log", "Successfully fetched version data from Chrome Labs");
+    sendLog("log", "Chrome Labs에서 버전 정보를 성공적으로 가져왔습니다.");
 
-    // 모든 채널에서 일치하거나 가장 가까운 이전 버전 찾기
-    let matchingVersion = null;
-    let closestVersion = null;
-    const targetMajor = parseInt(chromeMajorVersion);
+    // "정확히" major 버전이 일치하는 채널이 있는지 확인
+    let matchingVersion: ChromeVersion | null = null;
+    const targetMajor = parseInt(chromeMajorVersion, 10);
 
     for (const [channel, data] of Object.entries(json.channels)) {
       const version = data.version;
-      const major = parseInt(getMajorVersion(version) || "0");
+      const major = parseInt(getMajorVersion(version) || "0", 10);
 
-      // 정확히 일치하는 버전 찾기
+      // ① 정확히 일치하는 버전만 매칭
       if (major === targetMajor) {
         matchingVersion = data;
         sendLog(
           "log",
-          `Found exact matching version in channel ${channel}: ${version}`
+          `채널 "${channel}"에서 Chrome 버전과 정확히 일치하는 ChromeDriver를 찾았습니다: ${version}`
         );
         break;
       }
-
-      // 가장 가까운 이전 버전 업데이트
-      if (
-        major < targetMajor &&
-        (!closestVersion ||
-          major > parseInt(getMajorVersion(closestVersion.version) || "0"))
-      ) {
-        closestVersion = data;
-      }
     }
 
-    // 일치하는 버전이 없으면 가장 가까운 이전 버전 사용
-    const selectedVersion = matchingVersion || closestVersion;
-    if (!selectedVersion) {
-      sendLog(
-        "error",
-        `No suitable ChromeDriver version found for Chrome ${chromeMajorVersion}`
-      );
-      return null;
-    }
-
+    // ② 일치하는 버전이 전혀 없으면 에러 처리
     if (!matchingVersion) {
       sendLog(
-        "log",
-        `Using closest available version: ${selectedVersion.version}`
+        "error",
+        `Chrome 메이저 버전 ${chromeMajorVersion}와 정확히 일치하는 ChromeDriver를 찾을 수 없습니다. ` +
+          `Chrome을 업데이트하거나 지원되는 버전을 사용해 주세요.`
       );
-    }
-
-    // 드라이버 URL 찾기
-    const downloads = selectedVersion.downloads?.chromedriver || [];
-    const driverUrl = downloads.find(
-      (item: { platform: string; url: string }) => item.platform === "win64"
-    )?.url;
-
-    if (!driverUrl) {
-      sendLog("error", "No suitable ChromeDriver download URL found");
       return null;
     }
-    sendLog("log", `Found driver URL for win64: ${driverUrl}`);
 
-    // 4. 드라이버 다운로드
+    // ③ 해당 채널의 다운로드 URL을 가져옴
+    const downloads = matchingVersion.downloads?.chromedriver || [];
+    const driverUrl = downloads.find((item) => item.platform === "win64")?.url;
+
+    if (!driverUrl) {
+      sendLog(
+        "error",
+        "이 버전에 맞는 ChromeDriver 다운로드 URL을 찾을 수 없습니다."
+      );
+      return null;
+    }
+    sendLog(
+      "log",
+      `win64용 ChromeDriver 다운로드 경로를 찾았습니다: ${driverUrl}`
+    );
+
+    // zip 다운로드 → 압축 해제 → chromedriver.exe 추출
     const zipPath = path.join(__dirname, "temp_driver.zip");
     const response2 = await fetch(driverUrl);
     const arrayBuffer = await response2.arrayBuffer();
     await fs.promises.writeFile(zipPath, Buffer.from(arrayBuffer));
-    sendLog("log", `Downloaded ChromeDriver to ${zipPath}`);
+    sendLog("log", `ChromeDriver를 다운로드했습니다: ${zipPath}`);
 
-    // 5. 압축 해제
     const driverDir = path.join(__dirname, "chromedriver");
     if (fs.existsSync(driverDir)) {
-      sendLog("log", "Removing existing ChromeDriver directory");
+      sendLog("log", "기존 ChromeDriver 디렉터리를 삭제합니다.");
       killProcess("chromedriver.exe");
       await fs.promises.rm(driverDir, { recursive: true, force: true });
     }
 
-    sendLog("log", `Creating directory: ${driverDir}`);
+    sendLog("log", `디렉터리를 생성합니다: ${driverDir}`);
     await fs.promises.mkdir(driverDir, { recursive: true });
 
     const zipData = await fs.promises.readFile(zipPath);
@@ -324,7 +334,7 @@ async function downloadLatestChromedriver(
 
     for (const [filename, file] of Object.entries(zip.files)) {
       if (filename.endsWith("chromedriver.exe")) {
-        sendLog("log", `Extracting ${filename}`);
+        sendLog("log", `${filename} 파일을 압축 해제 중...`);
         const content = await file.async("nodebuffer");
         await fs.promises.writeFile(
           path.join(driverDir, "chromedriver.exe"),
@@ -333,49 +343,51 @@ async function downloadLatestChromedriver(
         extracted = true;
       }
     }
-
     await fs.promises.unlink(zipPath);
 
     if (!extracted) {
-      sendLog("error", "ChromeDriver.exe not found in zip file");
+      sendLog("error", "압축 파일에서 ChromeDriver.exe를 찾을 수 없습니다.");
       return null;
     }
 
     const driverPath = path.join(driverDir, "chromedriver.exe");
-    sendLog("log", `ChromeDriver extracted to: ${driverPath}`);
+    sendLog("log", `ChromeDriver가 압축 해제되었습니다: ${driverPath}`);
     return driverPath;
   } catch (error) {
     sendLog(
       "error",
-      `Error in downloadLatestChromedriver: ${formatError(error)}`
+      `ChromeDriver 다운로드 중 오류 발생: ${formatError(error)}`
     );
-    throw error;
+    return null;
   }
 }
 
 async function ensureChromedriver() {
   const chromeVer = getInstalledChromeVersion();
-  sendLog("log", `Detected Chrome version: ${chromeVer}`);
+  sendLog("log", `Chrome 버전을 확인했습니다: ${chromeVer}`);
   if (!chromeVer) return null;
 
   const chromeMajor = getMajorVersion(chromeVer);
-  sendLog("log", `Chrome major version: ${chromeMajor}`);
+  sendLog("log", `Chrome 메이저 버전: ${chromeMajor}`);
   if (!chromeMajor) return null;
 
   const driverPath = path.join(__dirname, "chromedriver", "chromedriver.exe");
   const driverMajor = getDriverMajorVersion(driverPath);
-  sendLog("log", `Current ChromeDriver version: ${driverMajor}`);
+  sendLog("log", `현재 ChromeDriver 버전: ${driverMajor}`);
 
   if (!driverMajor || driverMajor !== chromeMajor) {
-    sendLog("log", `Downloading new ChromeDriver for version: ${chromeMajor}`);
+    sendLog(
+      "log",
+      `메이저 버전 ${chromeMajor}용 ChromeDriver를 새로 다운로드합니다...`
+    );
     try {
       const newDriver = await downloadLatestChromedriver(chromeMajor);
-      sendLog("log", `Downloaded ChromeDriver path: ${newDriver}`);
+      sendLog("log", `ChromeDriver가 다운로드되었습니다: ${newDriver}`);
       return newDriver;
     } catch (error) {
       sendLog(
         "error",
-        `Failed to download ChromeDriver: ${formatError(error)}`
+        `ChromeDriver 다운로드에 실패했습니다: ${formatError(error)}`
       );
       return null;
     }
@@ -385,30 +397,36 @@ async function ensureChromedriver() {
 
 async function applyJsStateToAllTabs() {
   if (!driver) {
-    sendLog("log", "No active browser session to apply JS state");
+    sendLog("log", "JS 상태를 적용할 활성 브라우저 세션이 없습니다.");
     return;
   }
   try {
     const handles = await driver.getAllWindowHandles();
-    sendLog("log", `Applying JS state to ${handles.length} tabs...`);
+    sendLog("log", `JS 상태를 ${handles.length}개의 탭에 적용합니다...`);
     for (const h of handles) {
-      sendLog("log", `Switching to tab: ${h}`);
+      sendLog("log", `탭 전환 중: ${h}`);
       await driver.switchTo().window(h);
       await (driver as any).sendDevToolsCommand(
         "Emulation.setScriptExecutionDisabled",
         { value: jsDisabled }
       );
-      sendLog("log", `JS ${jsDisabled ? "disabled" : "enabled"} for tab: ${h}`);
+      sendLog(
+        "log",
+        `탭 ${h}의 JS를 ${jsDisabled ? "비활성화" : "활성화"}했습니다.`
+      );
       await driver.navigate().refresh();
     }
-    sendLog("log", "Successfully applied JS state to all tabs");
+    sendLog("log", "모든 탭에 JS 상태 적용을 완료했습니다.");
   } catch (error) {
-    sendLog("error", `Failed to apply JS state: ${formatError(error)}`);
+    sendLog(
+      "error",
+      `JS 상태를 적용하는 데 실패했습니다: ${formatError(error)}`
+    );
   }
 }
 
 async function monitorBrowser() {
-  sendLog("log", "Starting browser monitoring...");
+  sendLog("log", "브라우저 모니터링을 시작합니다...");
   while (monitoring && driver) {
     try {
       const currentHandles = new Set(await driver.getAllWindowHandles());
@@ -416,9 +434,12 @@ async function monitorBrowser() {
         (x) => !existingHandles.has(x)
       );
       if (newHandles.length > 0) {
-        sendLog("log", `Detected ${newHandles.length} new browser tabs`);
+        sendLog(
+          "log",
+          `새로운 브라우저 탭이 ${newHandles.length}개 감지되었습니다.`
+        );
         for (const nh of newHandles) {
-          sendLog("log", `Processing new tab: ${nh}`);
+          sendLog("log", `새로운 탭 처리 중: ${nh}`);
           await driver.switchTo().window(nh);
           await (driver as any).sendDevToolsCommand(
             "Emulation.setScriptExecutionDisabled",
@@ -426,44 +447,47 @@ async function monitorBrowser() {
           );
           await driver.navigate().refresh();
           existingHandles.add(nh);
-          sendLog("log", `Successfully processed new tab: ${nh}`);
+          sendLog("log", `새로운 탭 ${nh} 처리를 완료했습니다.`);
         }
       }
       await driver.getTitle();
     } catch (error) {
-      sendLog("error", `Browser monitoring error: ${formatError(error)}`);
+      sendLog("error", `브라우저 모니터링 중 오류 발생: ${formatError(error)}`);
       await onBrowserClosed();
       break;
     }
     await new Promise((r) => setTimeout(r, 1000));
   }
-  sendLog("log", "Browser monitoring stopped");
+  sendLog("log", "브라우저 모니터링이 중단되었습니다.");
 }
 
 async function onBrowserClosed() {
-  sendLog("log", "Handling browser closure...");
+  sendLog("log", "브라우저가 닫힘에 따라 처리 중...");
   monitoring = false;
   driver = null;
   existingHandles.clear();
-  sendLog("log", "Browser session cleaned up");
+  sendLog("log", "브라우저 세션이 정리되었습니다.");
 }
 
 async function closeDriver() {
   if (driver) {
-    sendLog("log", "Closing browser session...");
+    sendLog("log", "브라우저 세션을 종료합니다...");
     try {
       const currentUrl = await driver.getCurrentUrl();
-      sendLog("log", `Saving current URL: ${currentUrl}`);
+      sendLog("log", `현재 URL을 저장합니다: ${currentUrl}`);
       writeStartUrl(currentUrl);
       await driver.quit();
-      sendLog("log", "Browser session closed successfully");
+      sendLog("log", "브라우저 세션이 정상적으로 종료되었습니다.");
     } catch (error) {
-      sendLog("error", `Error closing browser: ${formatError(error)}`);
+      sendLog(
+        "error",
+        `브라우저를 종료하는 중 오류 발생: ${formatError(error)}`
+      );
     }
     driver = null;
     monitoring = false;
   } else {
-    sendLog("log", "No active browser session to close");
+    sendLog("log", "종료할 활성 브라우저 세션이 없습니다.");
   }
 }
 
@@ -471,7 +495,7 @@ async function closeDriver() {
  * Electron 메인 윈도우 생성
  */
 const createWindow = () => {
-  sendLog("log", "Creating main application window...");
+  sendLog("log", "메인 애플리케이션 창을 생성합니다...");
 
   mainWindow = new BrowserWindow({
     width: 800,
@@ -487,7 +511,7 @@ const createWindow = () => {
   // Wait for window to be ready before sending logs
   mainWindow.webContents.on("did-finish-load", () => {
     console.log("Window loaded, sending initial log...");
-    sendLog("log", "Window initialization completed");
+    sendLog("log", "창 초기화가 완료되었습니다.");
   });
 
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
@@ -537,41 +561,38 @@ ipcMain.handle("quitApp", async () => {
  * 종료 시 처리
  */
 async function cleanup() {
-  sendLog("log", "Starting application cleanup...");
+  sendLog("log", "애플리케이션 정리를 시작합니다...");
   await closeDriver();
   killChromeDriverProcesses();
-  sendLog("log", "Application cleanup completed");
+  sendLog("log", "애플리케이션 정리가 완료되었습니다.");
 }
 
 async function launchBrowser(url: string) {
   if (driver) {
-    sendLog("log", "Browser is already running");
+    sendLog("log", "브라우저가 이미 실행 중입니다.");
     return;
   }
 
-  sendLog("log", "Starting browser launch process...");
+  sendLog("log", "브라우저 실행 프로세스를 시작합니다...");
 
   // Check Chrome installation first
   const chromeVer = getInstalledChromeVersion();
   if (!chromeVer) {
-    sendLog(
-      "error",
-      "Chrome is not installed or version could not be detected"
-    );
+    sendLog("error", "Chrome이 설치되지 않았거나 버전을 확인할 수 없습니다.");
     return;
   }
-  sendLog("log", `Detected Chrome version: ${chromeVer}`);
+  sendLog("log", `Chrome 버전을 확인했습니다: ${chromeVer}`);
 
   const driverPath = await ensureChromedriver();
   if (!driverPath || !fs.existsSync(driverPath)) {
-    sendLog("error", `ChromeDriver preparation failed. Path: ${driverPath}`);
-    sendLog("error", "Please make sure Chrome is installed and try again");
+    sendLog("error", `ChromeDriver 준비에 실패했습니다. 경로: ${driverPath}`);
+    sendLog("error", "Chrome이 설치되어 있는지 확인하고 다시 시도해 주세요.");
     return;
   }
-  sendLog("log", `ChromeDriver ready at: ${driverPath}`);
+  sendLog("log", `ChromeDriver 준비 완료: ${driverPath}`);
 
   try {
-    sendLog("log", "Initializing Chrome WebDriver...");
+    sendLog("log", "Chrome WebDriver를 초기화합니다...");
     const serviceBuilder = new chrome.ServiceBuilder(driverPath);
     const options = new chrome.Options();
     options.addArguments("--no-sandbox");
@@ -583,7 +604,10 @@ async function launchBrowser(url: string) {
       .setChromeService(serviceBuilder)
       .build()) as CustomWebDriver;
 
-    sendLog("log", `Chrome WebDriver initialized, navigating to URL: ${url}`);
+    sendLog(
+      "log",
+      `Chrome WebDriver가 초기화되었습니다. 다음 URL로 이동: ${url}`
+    );
     await driver.get(url);
     existingHandles = new Set(await driver.getAllWindowHandles());
     writeStartUrl(url);
@@ -593,14 +617,17 @@ async function launchBrowser(url: string) {
     if (jsDisabled) {
       await applyJsStateToAllTabs();
     }
-    sendLog("log", "Browser launch completed successfully");
+    sendLog("log", "브라우저 실행이 성공적으로 완료되었습니다.");
   } catch (e) {
-    sendLog("error", `Browser launch error: ${formatError(e)}`);
+    sendLog("error", `브라우저 실행 중 오류 발생: ${formatError(e)}`);
     if (driver) {
       try {
         await driver.quit();
       } catch (error) {
-        sendLog("error", `Error while quitting driver: ${formatError(error)}`);
+        sendLog(
+          "error",
+          `드라이버를 종료하는 중 오류 발생: ${formatError(error)}`
+        );
       }
       driver = null;
     }
@@ -609,16 +636,19 @@ async function launchBrowser(url: string) {
 
 async function toggleJs() {
   jsDisabled = !jsDisabled;
-  sendLog("log", `Setting JavaScript ${jsDisabled ? "disabled" : "enabled"}`);
+  sendLog("log", `JavaScript를 ${jsDisabled ? "비활성화" : "활성화"}합니다.`);
   if (driver) {
     try {
       await applyJsStateToAllTabs();
-      sendLog("log", "Successfully toggled JavaScript state");
+      sendLog("log", "JavaScript 상태를 성공적으로 전환했습니다.");
     } catch (e) {
-      sendLog("error", `Failed to toggle JavaScript: ${formatError(e)}`);
+      sendLog(
+        "error",
+        `JavaScript 상태를 전환하는 데 실패했습니다: ${formatError(e)}`
+      );
     }
   } else {
-    sendLog("log", "No active browser session to toggle JavaScript");
+    sendLog("log", "JavaScript 상태를 전환할 활성 브라우저 세션이 없습니다.");
   }
   return jsDisabled;
 }
@@ -641,7 +671,7 @@ async function validateEnvironment() {
   }
 }
 
-// 앱 시작 시점 수정
+// 앱 시작 시점
 app.whenReady().then(async () => {
   try {
     await validateEnvironment();
