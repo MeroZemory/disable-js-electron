@@ -656,7 +656,10 @@ async function launchBrowser(url: string) {
     );
     await driver.get(url);
     existingHandles = new Set(await driver.getAllWindowHandles());
-    writeStartUrl(url); // 시작 URL 저장
+
+    // 브라우저 실행이 성공한 후에만 URL 저장
+    writeStartUrl(url);
+
     monitoring = true;
     monitorBrowser();
 

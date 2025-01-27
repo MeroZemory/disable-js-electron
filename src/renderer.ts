@@ -146,7 +146,6 @@ async function init() {
 
 launchButton.addEventListener("click", async () => {
   const url = startUrlInput.value.trim();
-  await window.electronAPI.saveStartUrl(url);
   await window.electronAPI.launchBrowser(url);
   infoDiv.textContent = `브라우저를 실행했습니다: ${url}`;
 });
