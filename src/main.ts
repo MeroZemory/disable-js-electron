@@ -27,6 +27,12 @@ function sendBrowserState(state: boolean) {
   }
 }
 
+function sendJsState(state: boolean) {
+  if (mainWindow) {
+    mainWindow.webContents.send("js-state-changed", state);
+  }
+}
+
 function killProcess(name: string) {
   sendLog("log", `프로세스 종료 시도 중: ${name}`);
   if (os.platform() === "win32") {
@@ -410,23 +416,36 @@ async function applyJsStateToAllTabs() {
     const handles = await driver.getAllWindowHandles();
     sendLog("log", `JS 상태를 ${handles.length}개의 탭에 적용합니다...`);
     for (const h of handles) {
-      sendLog("log", `탭 전환 중: ${h}`);
-      await driver.switchTo().window(h);
-      await (driver as any).sendDevToolsCommand(
-        "Emulation.setScriptExecutionDisabled",
-        { value: jsDisabled }
-      );
-      sendLog(
-        "log",
-        `탭 ${h}의 JS를 ${jsDisabled ? "비활성화" : "활성화"}했습니다.`
-      );
-      await driver.navigate().refresh();
+      await applyJsStateToTab(h);
     }
     sendLog("log", "모든 탭에 JS 상태 적용을 완료했습니다.");
   } catch (error) {
     sendLog(
       "error",
       `JS 상태를 적용하는 데 실패했습니다: ${formatError(error)}`
+    );
+  }
+}
+
+async function applyJsStateToTab(handle: string) {
+  if (!driver) return;
+
+  try {
+    sendLog("log", `탭 전환 중: ${handle}`);
+    await driver.switchTo().window(handle);
+    await (driver as any).sendDevToolsCommand(
+      "Emulation.setScriptExecutionDisabled",
+      { value: jsDisabled }
+    );
+    sendLog(
+      "log",
+      `탭 ${handle}의 JS를 ${jsDisabled ? "비활성화" : "활성화"}했습니다.`
+    );
+    await driver.navigate().refresh();
+  } catch (error) {
+    sendLog(
+      "error",
+      `탭 ${handle}에 JS 상태를 적용하는 데 실패했습니다: ${formatError(error)}`
     );
   }
 }
@@ -446,12 +465,7 @@ async function monitorBrowser() {
         );
         for (const nh of newHandles) {
           sendLog("log", `새로운 탭 처리 중: ${nh}`);
-          await driver.switchTo().window(nh);
-          await (driver as any).sendDevToolsCommand(
-            "Emulation.setScriptExecutionDisabled",
-            { value: jsDisabled }
-          );
-          await driver.navigate().refresh();
+          await applyJsStateToTab(nh);
           existingHandles.add(nh);
           sendLog("log", `새로운 탭 ${nh} 처리를 완료했습니다.`);
         }
@@ -625,6 +639,7 @@ async function launchBrowser(url: string) {
     monitoring = true;
     monitorBrowser();
 
+    // 현재 JS 상태 적용
     if (jsDisabled) {
       await applyJsStateToAllTabs();
     }
@@ -649,6 +664,8 @@ async function launchBrowser(url: string) {
 async function toggleJs() {
   jsDisabled = !jsDisabled;
   sendLog("log", `JavaScript를 ${jsDisabled ? "비활성화" : "활성화"}합니다.`);
+  sendJsState(jsDisabled);
+
   if (driver) {
     try {
       await applyJsStateToAllTabs();
@@ -660,7 +677,10 @@ async function toggleJs() {
       );
     }
   } else {
-    sendLog("log", "JavaScript 상태를 전환할 활성 브라우저 세션이 없습니다.");
+    sendLog(
+      "log",
+      "현재 실행 중인 브라우저가 없습니다. 다음 브라우저 실행 시 적용됩니다."
+    );
   }
   return jsDisabled;
 }

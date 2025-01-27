@@ -69,8 +69,15 @@ logDiv.style.overflowY = "auto";
 // 브라우저 상태에 따른 버튼 활성화/비활성화 처리
 function updateButtonStates(isRunning: boolean) {
   launchButton.disabled = isRunning;
-  toggleJsButton.disabled = !isRunning;
   closeDriverButton.disabled = !isRunning;
+}
+
+// JS 토글 버튼 상태 업데이트
+function updateJsToggleState(isDisabled: boolean) {
+  toggleJsButton.textContent = `JS ${isDisabled ? "활성화" : "비활성화"}`;
+  infoDiv.textContent = `현재 JavaScript ${
+    isDisabled ? "비활성화" : "활성화"
+  } 상태`;
 }
 
 // 초기화
@@ -92,6 +99,17 @@ async function init() {
     console.log("Setting up browser state listener...");
     window.electronAPI.onBrowserStateChanged((isRunning) => {
       updateButtonStates(isRunning);
+    });
+  }
+
+  // JS 상태 변경 감지
+  if (
+    window.electronAPI &&
+    typeof window.electronAPI.onJsStateChanged === "function"
+  ) {
+    console.log("Setting up JS state listener...");
+    window.electronAPI.onJsStateChanged((isDisabled) => {
+      updateJsToggleState(isDisabled);
     });
   }
 
@@ -123,6 +141,7 @@ async function init() {
 
   // 초기 버튼 상태 설정
   updateButtonStates(false);
+  updateJsToggleState(false);
 }
 
 launchButton.addEventListener("click", async () => {
@@ -134,7 +153,7 @@ launchButton.addEventListener("click", async () => {
 
 toggleJsButton.addEventListener("click", async () => {
   const newState = await window.electronAPI.toggleJs();
-  infoDiv.textContent = `JS 상태: ${newState ? "비활성화" : "활성화"}`;
+  updateJsToggleState(newState);
 });
 
 closeDriverButton.addEventListener("click", async () => {

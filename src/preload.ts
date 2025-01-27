@@ -14,11 +14,13 @@ export interface ElectronAPI {
     callback: (log: { type: "log" | "error"; message: string }) => void
   ): () => void;
   onBrowserStateChanged(callback: (isRunning: boolean) => void): () => void;
+  onJsStateChanged(callback: (isDisabled: boolean) => void): () => void;
 }
 
 // IPC 이벤트 리스너 설정
 const logListeners = new Set<(log: any) => void>();
 const stateListeners = new Set<(state: boolean) => void>();
+const jsStateListeners = new Set<(state: boolean) => void>();
 
 ipcRenderer.on("browser-log", (_, log) => {
   console.log("Received browser log:", log);
@@ -28,6 +30,11 @@ ipcRenderer.on("browser-log", (_, log) => {
 ipcRenderer.on("browser-state-changed", (_, state) => {
   console.log("Received browser state:", state);
   stateListeners.forEach((callback) => callback(state));
+});
+
+ipcRenderer.on("js-state-changed", (_, state) => {
+  console.log("Received JS state:", state);
+  jsStateListeners.forEach((callback) => callback(state));
 });
 
 // Electron API 노출
@@ -52,6 +59,14 @@ const api: ElectronAPI = {
     return () => {
       console.log("Removing browser state callback");
       stateListeners.delete(callback);
+    };
+  },
+  onJsStateChanged: (callback) => {
+    console.log("Registering JS state callback");
+    jsStateListeners.add(callback);
+    return () => {
+      console.log("Removing JS state callback");
+      jsStateListeners.delete(callback);
     };
   },
 };
