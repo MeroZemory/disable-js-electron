@@ -66,6 +66,13 @@ logDiv.style.whiteSpace = "pre-wrap";
 logDiv.style.maxHeight = "300px";
 logDiv.style.overflowY = "auto";
 
+// 브라우저 상태에 따른 버튼 활성화/비활성화 처리
+function updateButtonStates(isRunning: boolean) {
+  launchButton.disabled = isRunning;
+  toggleJsButton.disabled = !isRunning;
+  closeDriverButton.disabled = !isRunning;
+}
+
 // 초기화
 async function init() {
   console.log("Initializing renderer process...");
@@ -75,6 +82,17 @@ async function init() {
   const savedUrl = await window.electronAPI.getStartUrl();
   if (savedUrl) {
     startUrlInput.value = savedUrl;
+  }
+
+  // 브라우저 상태 변경 감지
+  if (
+    window.electronAPI &&
+    typeof window.electronAPI.onBrowserStateChanged === "function"
+  ) {
+    console.log("Setting up browser state listener...");
+    window.electronAPI.onBrowserStateChanged((isRunning) => {
+      updateButtonStates(isRunning);
+    });
   }
 
   // 브라우저 로그 수신
@@ -102,6 +120,9 @@ async function init() {
     logEntry.textContent = "Error: Browser log API not available";
     logDiv.appendChild(logEntry);
   }
+
+  // 초기 버튼 상태 설정
+  updateButtonStates(false);
 }
 
 launchButton.addEventListener("click", async () => {

@@ -21,6 +21,12 @@ let jsDisabled = false;
 let existingHandles = new Set();
 let monitoring = false;
 
+function sendBrowserState(state: boolean) {
+  if (mainWindow) {
+    mainWindow.webContents.send("browser-state-changed", state);
+  }
+}
+
 function killProcess(name: string) {
   sendLog("log", `프로세스 종료 시도 중: ${name}`);
   if (os.platform() === "win32") {
@@ -466,6 +472,7 @@ async function onBrowserClosed() {
   monitoring = false;
   driver = null;
   existingHandles.clear();
+  sendBrowserState(false);
   sendLog("log", "브라우저 세션이 정리되었습니다.");
 }
 
@@ -486,6 +493,7 @@ async function closeDriver() {
     }
     driver = null;
     monitoring = false;
+    sendBrowserState(false);
   } else {
     sendLog("log", "종료할 활성 브라우저 세션이 없습니다.");
   }
@@ -573,12 +581,14 @@ async function launchBrowser(url: string) {
     return;
   }
 
+  sendBrowserState(true); // 브라우저 실행 시작을 알림
   sendLog("log", "브라우저 실행 프로세스를 시작합니다...");
 
   // Check Chrome installation first
   const chromeVer = getInstalledChromeVersion();
   if (!chromeVer) {
     sendLog("error", "Chrome이 설치되지 않았거나 버전을 확인할 수 없습니다.");
+    sendBrowserState(false);
     return;
   }
   sendLog("log", `Chrome 버전을 확인했습니다: ${chromeVer}`);
@@ -587,6 +597,7 @@ async function launchBrowser(url: string) {
   if (!driverPath || !fs.existsSync(driverPath)) {
     sendLog("error", `ChromeDriver 준비에 실패했습니다. 경로: ${driverPath}`);
     sendLog("error", "Chrome이 설치되어 있는지 확인하고 다시 시도해 주세요.");
+    sendBrowserState(false);
     return;
   }
   sendLog("log", `ChromeDriver 준비 완료: ${driverPath}`);
@@ -631,6 +642,7 @@ async function launchBrowser(url: string) {
       }
       driver = null;
     }
+    sendBrowserState(false);
   }
 }
 

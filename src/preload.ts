@@ -13,14 +13,21 @@ export interface ElectronAPI {
   onBrowserLog(
     callback: (log: { type: "log" | "error"; message: string }) => void
   ): () => void;
+  onBrowserStateChanged(callback: (isRunning: boolean) => void): () => void;
 }
 
 // IPC 이벤트 리스너 설정
-const listeners = new Set<(log: any) => void>();
+const logListeners = new Set<(log: any) => void>();
+const stateListeners = new Set<(state: boolean) => void>();
 
 ipcRenderer.on("browser-log", (_, log) => {
   console.log("Received browser log:", log);
-  listeners.forEach((callback) => callback(log));
+  logListeners.forEach((callback) => callback(log));
+});
+
+ipcRenderer.on("browser-state-changed", (_, state) => {
+  console.log("Received browser state:", state);
+  stateListeners.forEach((callback) => callback(state));
 });
 
 // Electron API 노출
@@ -33,10 +40,18 @@ const api: ElectronAPI = {
   quitApp: () => ipcRenderer.invoke("quitApp"),
   onBrowserLog: (callback) => {
     console.log("Registering browser log callback");
-    listeners.add(callback);
+    logListeners.add(callback);
     return () => {
       console.log("Removing browser log callback");
-      listeners.delete(callback);
+      logListeners.delete(callback);
+    };
+  },
+  onBrowserStateChanged: (callback) => {
+    console.log("Registering browser state callback");
+    stateListeners.add(callback);
+    return () => {
+      console.log("Removing browser state callback");
+      stateListeners.delete(callback);
     };
   },
 };
