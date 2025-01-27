@@ -1,0 +1,7 @@
+.vscode/extensions.json
+.collectignore
+.cursorignore
+.eslintrc.json
+.git
+.gitignore
+package-lock.json

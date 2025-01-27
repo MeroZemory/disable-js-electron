@@ -1,0 +1,12 @@
+{
+  "recommendations": [
+    "rioj7.command-variable",
+    "mhutchie.git-graph",
+    "donjayamanne.githistory",
+    "codezombiech.gitignore",
+    "eamodio.gitlens",
+    "shd101wyy.markdown-preview-enhanced",
+    "esbenp.prettier-vscode",
+    "stevebeauge.quick-toggle-hide-ignored-files"
+  ]
+}

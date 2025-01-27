@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Electron + Selenium</title>
+  </head>
+  <body>
+    <!-- 
+      renderer.ts에서 동적으로 생성하는 요소를 표시할 공간만 준비.
+      필요한 경우 안내 문구 등을 추가 가능.
+    -->
+    <h1>Electron + Selenium + ChromeDriver Example</h1>
+
+    <!-- Vite Dev Server / 프로덕션 빌드에 따라 JS 경로가 자동 결정됨 -->
+    <!-- 개발 모드일 때는 Vite Dev Server가 .ts를 .js로 트랜스파일 -->
+    <!-- lectron 메인 프로세스에서 mainWindow.loadURL("http://localhost:5173")를 실행하면, 결과적으로 동일한 페이지가 로드됨 -->
+    <script type="module" src="./src/renderer.ts"></script>
+  </body>
+</html>
