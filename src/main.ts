@@ -48,26 +48,39 @@ function killChromeDriverProcesses() {
   killProcess("chromedriver.exe");
 }
 
-function readStartUrl() {
+function readStartUrl(defaultUrl = "about:blank") {
   try {
-    const dataFile = path.join(__dirname, "start_url.txt");
+    const dataFile = path.join(
+      app.getPath("userData"),
+      "disable-js-electron",
+      "start_url.txt"
+    );
     if (fs.existsSync(dataFile)) {
       const url = fs.readFileSync(dataFile, "utf8").trim();
       sendLog("log", `파일에서 시작 URL을 읽어왔습니다: ${url}`);
       return url;
     }
+    sendLog("log", `파일이 존재하지 않습니다: ${dataFile}`);
   } catch (error) {
     sendLog(
       "error",
       `시작 URL을 읽어오는 데 실패했습니다: ${formatError(error)}`
     );
   }
-  return "";
+  return defaultUrl;
 }
 
 function writeStartUrl(url: string) {
   try {
-    const dataFile = path.join(__dirname, "start_url.txt");
+    const dataFile = path.join(
+      app.getPath("userData"),
+      "disable-js-electron",
+      "start_url.txt"
+    );
+
+    // 폴더 생성
+    fs.mkdirSync(path.dirname(dataFile), { recursive: true });
+
     fs.writeFileSync(dataFile, url, "utf8");
     sendLog("log", `파일에 시작 URL을 저장했습니다: ${url}`);
   } catch (error) {
@@ -494,9 +507,6 @@ async function closeDriver() {
   if (driver) {
     sendLog("log", "브라우저 세션을 종료합니다...");
     try {
-      const currentUrl = await driver.getCurrentUrl();
-      sendLog("log", `현재 URL을 저장합니다: ${currentUrl}`);
-      writeStartUrl(currentUrl);
       await driver.quit();
       sendLog("log", "브라우저 세션이 정상적으로 종료되었습니다.");
     } catch (error) {
@@ -556,7 +566,7 @@ const createWindow = () => {
  * IPC 설정
  */
 ipcMain.handle("getStartUrl", async () => {
-  return readStartUrl() || "about:blank";
+  return readStartUrl("about:blank");
 });
 
 ipcMain.handle("saveStartUrl", async (event, url: string) => {
@@ -635,7 +645,7 @@ async function launchBrowser(url: string) {
     );
     await driver.get(url);
     existingHandles = new Set(await driver.getAllWindowHandles());
-    writeStartUrl(url);
+    writeStartUrl(url); // 시작 URL 저장
     monitoring = true;
     monitorBrowser();
 
